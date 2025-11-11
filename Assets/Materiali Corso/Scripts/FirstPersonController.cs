@@ -10,7 +10,7 @@ public class FirstPersonController : MonoBehaviour
 
     [Header("View")]
     [SerializeField] Transform cameraRoot;
-    [SerializeField] float mouseSensitivity = 1f;
+    [SerializeField] float mouseSensitivity = 25f;
     [SerializeField] float maxLookUp = 80f;
     [SerializeField] float maxLookDown = -80f;
 
@@ -91,9 +91,10 @@ public class FirstPersonController : MonoBehaviour
 
     void Update()
     {
-        HandleLook();
         HandleMovement();
+        HandleLook();
     }
+
 
     void HandleLook()
     {
