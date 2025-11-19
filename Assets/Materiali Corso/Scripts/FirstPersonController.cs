@@ -43,7 +43,7 @@ public class FirstPersonController : MonoBehaviour
         inputActions = new PlayerInputActions();
 
         // --- MOVE ---
-        inputActions.Player.Move.performed += ctx =>
+        inputActions.Player.Move.performed += ctx => //ctx = CallbackContext
         {
             moveInput = ctx.ReadValue<Vector2>();
         };
@@ -147,7 +147,6 @@ public class FirstPersonController : MonoBehaviour
         // può saltare solo se è a terra e non è accovacciato
         if (controller.isGrounded && !isCrouching)
         {
-            // formula: v = sqrt(h * -2 * g)
             verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
         }
     }
