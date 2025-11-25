@@ -73,6 +73,7 @@ public class Health : MonoBehaviour
 
     private void NotifyHealthChanged()
     {
+        Debug.Log($"VITA CORRENTE: {currentHealth}/{maxHealth}");
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
     }
 
