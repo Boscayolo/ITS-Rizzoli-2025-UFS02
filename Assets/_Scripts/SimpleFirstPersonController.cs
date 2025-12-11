@@ -22,6 +22,7 @@ public class SimplePlayerController : MonoBehaviour
     {
         Sprint();
         Move();
+
         Look();
     }
 
@@ -64,8 +65,8 @@ public class SimplePlayerController : MonoBehaviour
     // Rotazione player + camera con il mouse
     void Look()
     {
-        float mouseX = Input.GetAxis("Mouse X") * lookSensitivity;
-        float mouseY = Input.GetAxis("Mouse Y") * lookSensitivity;
+        float mouseX = Input.GetAxis("Mouse X") * lookSensitivity * Time.deltaTime;
+        float mouseY = Input.GetAxis("Mouse Y") * lookSensitivity * Time.deltaTime;
 
         // Rotazione orizzontale del player
         transform.Rotate(Vector3.up * mouseX);

@@ -14,5 +14,6 @@ public class Utilities
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
         }
+        
     }
 }

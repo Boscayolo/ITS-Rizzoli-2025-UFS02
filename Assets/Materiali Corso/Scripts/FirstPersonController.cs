@@ -91,12 +91,12 @@ public class FirstPersonController : MonoBehaviour
 
     void Update()
     {
-        HandleMovement();
-        HandleLook();
+        Movement();
+        Look();
     }
 
 
-    void HandleLook()
+    void Look()
     {
         // moltiplico per deltaTime per rendere la sensibilità indipendente dal framerate
         Vector2 look = lookInput * mouseSensitivity * Time.deltaTime;
@@ -118,7 +118,7 @@ public class FirstPersonController : MonoBehaviour
         }
     }
 
-    void HandleMovement()
+    void Movement()
     {
         bool isGrounded = controller.isGrounded;
 

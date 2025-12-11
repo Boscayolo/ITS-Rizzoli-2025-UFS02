@@ -14,7 +14,6 @@ public class PlayerShooter : Shooter
 
         _inputActions = new PlayerInputActions();
 
-        // Se vuoi: "click singolo" = fire una volta su performed
         _inputActions.Player.Fire.performed += OnFirePerformed;
 
         // Se vuoi tenere premuto per auto-fire: usiamo anche canceled

@@ -9,14 +9,15 @@ public class DebugDemonstration : MonoBehaviour
     [SerializeField] int numeroInteroPriv = 0;
     public float numeroDecimale = 0.0f;
 
-    string stringa = "";
+    string stringa = "ciao sono una stringa 012034";
     bool veroFalso = false;
 
-    int[] intArray = new int[3];
+    int[] intArray;
     List<int> intList = new List<int>();
     Dictionary<int, string> intStringDictionary = new();
     HashSet<int> ints = new HashSet<int>();
-    public enum State { VIVO, MORTO, ADDORMENTATO }
+    [System.Flags]
+    public enum State { VIVO=0 >> 1 , MORTO=2, ADDORMENTATO }
 
     public State state = State.VIVO;
 
@@ -56,43 +57,45 @@ public class DebugDemonstration : MonoBehaviour
 
     private void Awake()
     {
-        valueClass.ReadInt();
-        //Debug.Log("AWAKE");
+        //valueClass.ReadInt();
+        Debug.Log("AWAKE");
+
+        intArray = new int[100];
     }
 
-    //private void Start()
-    //{
-    //    Debug.Log("START");
-    //}
+    private void Start()
+    {
+        Debug.Log("START");
+    }
 
-    //private void Update()
-    //{
-    //    Debug.Log("UPDATE");
-    //}
+    private void Update()
+    {
+        Debug.Log("UPDATE");
+    }
 
-    //private void FixedUpdate()
-    //{
-    //    Debug.Log("FIXED UPDATE");
-    //}
+    private void FixedUpdate()
+    {
+        Debug.Log("FIXED UPDATE");
+    }
 
-    //private void LateUpdate()
-    //{
-    //    Debug.Log("LATE UPDATE");
-    //}
+    private void LateUpdate()
+    {
+        Debug.Log("LATE UPDATE");
+    }
 
-    //private void OnEnable()
-    //{
-    //    Debug.Log("ENABLED");
-    //}
+    private void OnEnable()
+    {
+        Debug.Log("ENABLED");
+    }
 
-    //private void OnDisable()
-    //{
-    //    Debug.Log("DISABLED");
-    //}
+    private void OnDisable()
+    {
+        Debug.Log("DISABLED");
+    }
 
-    //private void OnDestroy()
-    //{
-    //    Debug.Log("DESTROYED");
-    //}
+    private void OnDestroy()
+    {
+        Debug.Log("DESTROYED");
+    }
 }
 
