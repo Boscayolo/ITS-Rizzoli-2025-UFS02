@@ -149,7 +149,8 @@ GameObject:
   - component: {fileID: 4486536390199041343}
   - component: {fileID: 4493796935508031963}
   - component: {fileID: 6115700308609904134}
-  - component: {fileID: 5901120583427715843}
+  - component: {fileID: 393691434702169850}
+  - component: {fileID: 8506210769625333605}
   m_Layer: 0
   m_Name: Player 1
   m_TagString: Untagged
@@ -252,7 +253,32 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &5901120583427715843
+--- !u!143 &393691434702169850
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7917166291616864910}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 2
+  m_Radius: 0.5
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &8506210769625333605
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -261,10 +287,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 7917166291616864910}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a6da135852f50604f9123656a752ce0b, type: 3}
+  m_Script: {fileID: 11500000, guid: 765300fb5fd844940bfbf1a0d5095ce9, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SimplePlayerController
-  speed: 5
-  sprintMultiplier: 1.5
-  cameraTransform: {fileID: 4055200181962698372}
-  lookSensitivity: 3
+  m_EditorClassIdentifier: Assembly-CSharp::FirstPersonController
+  moveSpeed: 5
+  crouchSpeedMultiplier: 0.5
+  cameraRoot: {fileID: 4055200181962698372}
+  mouseSensitivity: 25
+  maxLookUp: 80
+  maxLookDown: -80
+  jumpHeight: 1.5
+  gravity: -9.81
+  crouchHeight: 1
