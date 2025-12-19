@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 
-
 public enum Team
 {
     Neutral = 0,
@@ -73,7 +72,7 @@ public class Health : MonoBehaviour
 
     private void NotifyHealthChanged()
     {
-        Debug.Log($"VITA CORRENTE: {currentHealth}/{maxHealth}");
+        Debug.Log($"VITA CORRENTE DI {gameObject.name}: {currentHealth}/{maxHealth}");
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
     }
 
