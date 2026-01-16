@@ -5,20 +5,24 @@ public class EnemyShooter : Shooter
     private Transform playerTr;
     private Health playerHealth;
     private Health myHealth;
+    private Transform weaponHolder;
 
     [SerializeField] private float engageDistance = 50f;
     [SerializeField] private float rotationSpeed = 10f;
+    [SerializeField] private float weaponPitchSpeed = 10f;
+    [SerializeField] private float minWeaponPitch = -45f;
+    [SerializeField] private float maxWeaponPitch = 60f;
     [SerializeField] private float aimPredictionFactor = 10f;
 
     [Header("Weapon properties")]
     [SerializeField] private float bulletSpeed = 20f;
     [SerializeField] private GameObject bulletPrefab;
+    [SerializeField] private Transform weaponHolderTransform;
 
     [Header("Detection properties")]
     [SerializeField] private float detectionRadius = 50f;
-    [SerializeField] private float scanFrequency = 0.5f; // ogni quanto secondi scanna per il player
-    [SerializeField] private float spotReactionTime = 1.5f; // tempo prima di iniziare a sparare dopo aver avvistato
-    [SerializeField] private float raycastConeAngle = 30f; // angolo del cono di raycast
+    [SerializeField] private float scanFrequency = 0.5f;
+    [SerializeField] private float spotReactionTime = 1.5f;
 
     private bool playerSpotted;
     private float spotTimer;
@@ -28,19 +32,22 @@ public class EnemyShooter : Shooter
     {
         base.Awake();
         myHealth = GetComponent<Health>();
+        weaponHolder = weaponHolderTransform;
+
+        if (weaponHolder == null)
+        {
+            Debug.LogError("[EnemyShooter] WeaponHolder non assegnato! Assegnalo nell'inspector.");
+        }
+
         scanTimer = scanFrequency;
     }
 
     private void Update()
     {
-        // Scansiona l'area per il giocatore
         ScanForPlayer();
-
-        Debug.Log($"[EnemyShooter] playerSpotted: {playerSpotted}, playerTr: {playerTr}, spotTimer: {spotTimer}/{spotReactionTime}");
 
         if (!playerSpotted || playerTr == null)
         {
-            Debug.Log($"[EnemyShooter] Uscendo - playerSpotted: {playerSpotted}, playerTr: {playerTr}");
             return;
         }
 
@@ -48,11 +55,8 @@ public class EnemyShooter : Shooter
         if (spotTimer < spotReactionTime)
         {
             spotTimer += Time.deltaTime;
-            Debug.Log($"[EnemyShooter] Aspettando reazione... {spotTimer}/{spotReactionTime}");
             return;
         }
-
-        Debug.Log($"[EnemyShooter] REAZIONE COMPLETATA! Inizio rotazione e sparo");
 
         // Ruota verso il giocatore predetto
         RotateTowardsPredictedPosition();
@@ -78,7 +82,6 @@ public class EnemyShooter : Shooter
 
         // Cerca il giocatore in una sfera (360 gradi intorno al nemico)
         Collider[] colliders = Physics.OverlapSphere(transform.position, detectionRadius);
-        Debug.Log($"[EnemyShooter] Scansione: trovati {colliders.Length} collider");
 
         bool previouslySpotted = playerSpotted;
         playerSpotted = false;
@@ -87,15 +90,10 @@ public class EnemyShooter : Shooter
 
         foreach (Collider col in colliders)
         {
-            Debug.Log($"[EnemyShooter] Controllando collider: {col.gameObject.name}");
-
             if (col.TryGetComponent(out Health health))
             {
-                Debug.Log($"[EnemyShooter] {col.gameObject.name} ha Health, Team: {health.Team}");
-
                 if (health.Team == Team.Player)
                 {
-                    Debug.Log($"[EnemyShooter] Trovato giocatore nell'area!");
                     playerSpotted = true;
                     playerTr = col.transform;
                     playerHealth = health;
@@ -104,7 +102,6 @@ public class EnemyShooter : Shooter
                     if (!previouslySpotted)
                     {
                         spotTimer = 0;
-                        Debug.Log($"[EnemyShooter] PRIMO AVVISTAMENTO - Timer azzerato");
                     }
                     break;
                 }
@@ -115,7 +112,6 @@ public class EnemyShooter : Shooter
         if (!playerSpotted && previouslySpotted)
         {
             spotTimer = 0;
-            Debug.Log($"[EnemyShooter] Giocatore PERSO");
         }
     }
 
@@ -124,13 +120,29 @@ public class EnemyShooter : Shooter
         Vector3 predictedPosition = GetPredictedPlayerPosition();
         Vector3 directionToPredicted = (predictedPosition - transform.position).normalized;
 
-        // Calcola la rotazione desiderata (solo su Y)
-        Quaternion targetRotation = Quaternion.LookRotation(new Vector3(directionToPredicted.x, 0, directionToPredicted.z));
+        // CORPO: Ruota solo su Y verso il giocatore
+        Vector3 directionYOnly = new Vector3(directionToPredicted.x, 0, directionToPredicted.z).normalized;
+        Quaternion targetYawRotation = Quaternion.LookRotation(directionYOnly);
+        transform.rotation = Quaternion.Lerp(transform.rotation, targetYawRotation, rotationSpeed * Time.deltaTime);
 
-        // Lerp la rotazione
-        transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+        // ARMA: Ruota su X (pitch) per mirare verticalmente
+        if (weaponHolder != null)
+        {
+            // Calcola il pitch necessario
+            float targetPitch = -Mathf.Asin(Mathf.Clamp(directionToPredicted.y, -1f, 1f)) * Mathf.Rad2Deg;
+            targetPitch = Mathf.Clamp(targetPitch, minWeaponPitch, maxWeaponPitch);
 
-        Debug.Log($"[EnemyShooter] Rotazione verso: {targetRotation.eulerAngles}, Rotazione attuale: {transform.rotation.eulerAngles}");
+            // Estrai il pitch attuale dell'arma
+            Vector3 currentEuler = weaponHolder.localEulerAngles;
+            float currentPitch = currentEuler.x;
+            if (currentPitch > 180) currentPitch -= 360;
+
+            // Lerp il pitch
+            float lerpedPitch = Mathf.Lerp(currentPitch, targetPitch, weaponPitchSpeed * Time.deltaTime);
+
+            // Applica la rotazione X al weaponHolder
+            weaponHolder.localRotation = Quaternion.Euler(lerpedPitch, 0, 0);
+        }
     }
 
     private Vector3 GetPredictedPlayerPosition()
@@ -153,14 +165,12 @@ public class EnemyShooter : Shooter
     {
         if (playerTr == null || !playerSpotted)
         {
-            Debug.Log($"[EnemyShooter] Non posso sparare - playerTr: {playerTr}, playerSpotted: {playerSpotted}");
             return;
         }
 
         // Verifica line of sight prima di sparare
         if (!CheckLineOfSight(playerTr))
         {
-            Debug.Log($"[EnemyShooter] Line of sight bloccata - non sparo");
             return;
         }
 
@@ -179,10 +189,6 @@ public class EnemyShooter : Shooter
         {
             Collider myCollider = GetComponent<Collider>();
             bullet.Initialize(bulletSpeed, myHealth.Team, bulletDamage, myCollider);
-        }
-        else
-        {
-            Debug.LogError($"[EnemyShooter] Il prefab non ha il componente Bullet!");
         }
     }
 
@@ -210,12 +216,8 @@ public class EnemyShooter : Shooter
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, detectionRadius);
 
-        // Visualizza il cono di visione
-        Gizmos.color = Color.cyan;
-        Vector3 coneDirection = transform.forward * engageDistance;
-        Gizmos.DrawLine(transform.position, transform.position + coneDirection);
-
-        float coneRadiusAtDistance = engageDistance * Mathf.Tan(raycastConeAngle * Mathf.Deg2Rad);
-        Gizmos.DrawWireSphere(transform.position + coneDirection, coneRadiusAtDistance);
+        // Visualizza la distanza di engagement
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, engageDistance);
     }
 }

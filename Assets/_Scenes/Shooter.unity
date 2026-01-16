@@ -2555,6 +2555,22 @@ PrefabInstance:
       propertyPath: m_Name
       value: Enemy
       objectReference: {fileID: 0}
+    - target: {fileID: 4873563212829391604, guid: def62b11023b55341ada7fd2922c9223, type: 3}
+      propertyPath: bulletsLeft
+      value: 15
+      objectReference: {fileID: 0}
+    - target: {fileID: 4873563212829391604, guid: def62b11023b55341ada7fd2922c9223, type: 3}
+      propertyPath: rotationSpeed
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 4873563212829391604, guid: def62b11023b55341ada7fd2922c9223, type: 3}
+      propertyPath: minWeaponPitch
+      value: -10
+      objectReference: {fileID: 0}
+    - target: {fileID: 4873563212829391604, guid: def62b11023b55341ada7fd2922c9223, type: 3}
+      propertyPath: aimPredictionFactor
+      value: 0.22
+      objectReference: {fileID: 0}
     - target: {fileID: 5771278293406432749, guid: def62b11023b55341ada7fd2922c9223, type: 3}
       propertyPath: m_LocalPosition.x
       value: 13.87
