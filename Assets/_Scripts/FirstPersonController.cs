@@ -10,7 +10,14 @@ public class FirstPersonController : MonoBehaviour
 
     [Header("View")]
     [SerializeField] Transform cameraRoot;
-    [SerializeField] float mouseSensitivity = 25f;
+    [SerializeField] float lookSensitivity = 25f;
+
+    [Tooltip("Mouse delta: di solito FALSE. Gamepad stick: TRUE.")]
+    [SerializeField] bool scaleLookByDeltaTime = false;
+
+    [Tooltip("Se true, quando Time.timeScale == 0 il look viene bloccato (pausa).")]
+    [SerializeField] bool freezeLookWhenTimeScaleZero = true;
+
     [SerializeField] float maxLookUp = 80f;
     [SerializeField] float maxLookDown = -80f;
 
@@ -24,10 +31,11 @@ public class FirstPersonController : MonoBehaviour
     CharacterController controller;
     PlayerInputActions inputActions;
 
-    Vector2 moveInput;     // direzione WASD
-    Vector2 lookInput;     // input per camera
+    Vector2 moveInput;
     float verticalVelocity;
-    float xRotation;       // rotazione verticale camera
+
+    float pitch; // xRotation
+    float yaw;
 
     float originalHeight;
     Vector3 originalCenter;
@@ -39,49 +47,24 @@ public class FirstPersonController : MonoBehaviour
         originalHeight = controller.height;
         originalCenter = controller.center;
 
-        // Istanzio la classe generata dall'Input System
         inputActions = new PlayerInputActions();
 
-        // --- MOVE ---
-        inputActions.Player.Move.performed += ctx => //ctx = CallbackContext
-        {
-            moveInput = ctx.ReadValue<Vector2>();
-        };
-        inputActions.Player.Move.canceled += ctx =>
-        {
-            moveInput = Vector2.zero;
-        };
+        inputActions.Player.Jump.performed += _ => TryJump();
+        inputActions.Player.Crouch.performed += _ => StartCrouch();
+        inputActions.Player.Crouch.canceled += _ => StopCrouch();
 
-        // --- LOOK ---
-        inputActions.Player.Look.performed += ctx =>
-        {
-            lookInput = ctx.ReadValue<Vector2>();
-        };
-        inputActions.Player.Look.canceled += ctx =>
-        {
-            lookInput = Vector2.zero;
-        };
+        // Init yaw dal player
+        yaw = transform.eulerAngles.y;
 
-        // --- JUMP ---
-        inputActions.Player.Jump.performed += ctx =>
-        {
-            TryJump();
-        };
-
-        // --- CROUCH (tenere premuto) ---
-        inputActions.Player.Crouch.performed += ctx =>
-        {
-            StartCrouch();
-        };
-        inputActions.Player.Crouch.canceled += ctx =>
-        {
-            StopCrouch();
-        };
+        // Reset view iniziale (evita “guardo i piedi”)
+        ResetView();
     }
 
     void OnEnable()
     {
         inputActions.Enable();
+        // Quando riabiliti lo script, azzera eventuali delta “sporchi”
+        ResetView();
     }
 
     void OnDisable()
@@ -91,51 +74,62 @@ public class FirstPersonController : MonoBehaviour
 
     void Update()
     {
+        moveInput = inputActions.Player.Move.ReadValue<Vector2>();
         Movement();
+    }
+
+    void LateUpdate()
+    {
         Look();
     }
 
+    void ResetView()
+    {
+        pitch = 0f;
+
+        // opzionale: riallinea yaw al transform corrente
+        yaw = transform.eulerAngles.y;
+
+        ApplyView();
+    }
 
     void Look()
     {
-        // moltiplico per deltaTime per rendere la sensibilità indipendente dal framerate
-        Vector2 look = lookInput * mouseSensitivity * Time.deltaTime;
+        if (cameraRoot == null) return;
 
-        // Rotazione orizzontale del player (yaw)
-        transform.Rotate(Vector3.up * look.x);
+        if (freezeLookWhenTimeScaleZero && Time.timeScale == 0f)
+            return;
 
-        // Rotazione verticale della camera (pitch)
-        xRotation -= look.y;
-        xRotation = Mathf.Clamp(xRotation, maxLookDown, maxLookUp);
+        Vector2 rawLook = inputActions.Player.Look.ReadValue<Vector2>();
 
+        float factor = lookSensitivity * (scaleLookByDeltaTime ? Time.deltaTime : 1f);
+
+        yaw += rawLook.x * factor;
+        pitch -= rawLook.y * factor;
+        pitch = Mathf.Clamp(pitch, maxLookDown, maxLookUp);
+
+        ApplyView();
+    }
+
+    void ApplyView()
+    {
+        transform.rotation = Quaternion.Euler(0f, yaw, 0f);
         if (cameraRoot != null)
-        {
-            cameraRoot.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
-        }
-        else
-        {
-            Debug.LogWarning("FirstPersonController: cameraRoot non assegnato.");
-        }
+            cameraRoot.localRotation = Quaternion.Euler(pitch, 0f, 0f);
     }
 
     void Movement()
     {
-        bool isGrounded = controller.isGrounded;
+        bool grounded = controller.isGrounded;
 
-        // reset leggero per tenerlo attaccato al suolo
-        if (isGrounded && verticalVelocity < 0f)
-        {
+        if (grounded && verticalVelocity < 0f)
             verticalVelocity = -2f;
-        }
 
-        // direzione locale (in base all'orientamento del player)
         Vector3 move = transform.right * moveInput.x + transform.forward * moveInput.y;
 
-        // velocità: più lenta se crouch
         float currentSpeed = isCrouching ? moveSpeed * crouchSpeedMultiplier : moveSpeed;
         move *= currentSpeed;
 
-        // gravità
         verticalVelocity += gravity * Time.deltaTime;
         move.y = verticalVelocity;
 
@@ -144,11 +138,8 @@ public class FirstPersonController : MonoBehaviour
 
     void TryJump()
     {
-        // può saltare solo se è a terra e non è accovacciato
         if (controller.isGrounded && !isCrouching)
-        {
             verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
-        }
     }
 
     void StartCrouch()
@@ -157,13 +148,7 @@ public class FirstPersonController : MonoBehaviour
 
         isCrouching = true;
         controller.height = crouchHeight;
-
-        // abbassa il centro per non farlo "fluttuare"
-        controller.center = new Vector3(
-            originalCenter.x,
-            crouchHeight / 2f,
-            originalCenter.z
-        );
+        controller.center = new Vector3(originalCenter.x, crouchHeight / 2f, originalCenter.z);
     }
 
     void StopCrouch()
