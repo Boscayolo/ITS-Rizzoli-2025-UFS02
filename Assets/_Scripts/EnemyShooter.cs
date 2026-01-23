@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class EnemyShooter : Shooter
@@ -23,6 +24,9 @@ public class EnemyShooter : Shooter
     [SerializeField] private float maxLeadTime = 1.25f;
     [SerializeField] private float aimHeightFallback = 1.2f;
 
+    [Header("Pooling (ring per prefab, semplice)")]
+    [SerializeField] private int poolSize = 128;
+
     private Transform playerTr;
     private Collider playerCollider;
     private Health myHealth;
@@ -38,13 +42,21 @@ public class EnemyShooter : Shooter
 
     private Vector3 cachedAimPoint;
 
+    // Una sola struttura: una Queue per ogni bulletPrefab (supporta armi diverse)
+    private readonly Dictionary<GameObject, Queue<GameObject>> ringPools
+        = new Dictionary<GameObject, Queue<GameObject>>();
+
     protected override void Awake()
     {
         base.Awake();
         myHealth = GetComponent<Health>();
         weaponHolder = weaponHolderTransform;
 
-        scanTimer = 0f; // scan immediato
+        scanTimer = 0f; // primo scan immediato
+
+        // Pre-warm opzionale per l'arma corrente
+        if (currentWeapon != null && currentWeapon.bulletPrefab != null)
+            EnsurePoolFor(currentWeapon.bulletPrefab);
     }
 
     private void Update()
@@ -71,7 +83,6 @@ public class EnemyShooter : Shooter
 
         if (bulletsLeft > 0)
         {
-            // line of sight prima di sparare
             if (CheckLineOfSight(cachedAimPoint))
                 TryShoot();
         }
@@ -92,7 +103,8 @@ public class EnemyShooter : Shooter
         playerTr = null;
         playerCollider = null;
 
-        Collider[] colliders = Physics.OverlapSphere(transform.position, detectionRadius, ~0, QueryTriggerInteraction.Ignore);
+        Collider[] colliders = Physics.OverlapSphere(
+            transform.position, detectionRadius, ~0, QueryTriggerInteraction.Ignore);
 
         for (int i = 0; i < colliders.Length; i++)
         {
@@ -101,7 +113,7 @@ public class EnemyShooter : Shooter
             {
                 playerSpotted = true;
                 playerTr = h.transform;
-                playerCollider = colliders[i]; // spesso è un child collider, va benissimo per bounds.center
+                playerCollider = colliders[i];
 
                 if (!previouslySpotted)
                 {
@@ -112,7 +124,7 @@ public class EnemyShooter : Shooter
             }
         }
 
-        // Se lo perdi
+        // perso di vista
         if (previouslySpotted)
         {
             spotTimer = 0f;
@@ -162,7 +174,6 @@ public class EnemyShooter : Shooter
         return playerTr.position + Vector3.up * aimHeightFallback;
     }
 
-
     private Vector3 GetPredictedAimPoint()
     {
         Vector3 origin = (muzzle != null) ? muzzle.position : transform.position;
@@ -172,7 +183,7 @@ public class EnemyShooter : Shooter
         Vector3 v = estimatedPlayerVel;
         Vector3 r = target - origin;
 
-        // |r + v t| = s t  -> (v·v - s^2)t^2 + 2(r·v)t + (r·r) = 0
+        // |r + v t| = s t  -> (vÂ·v - s^2)t^2 + 2(rÂ·v)t + (rÂ·r) = 0
         float a = Vector3.Dot(v, v) - s * s;
         float b = 2f * Vector3.Dot(r, v);
         float c = Vector3.Dot(r, r);
@@ -263,33 +274,83 @@ public class EnemyShooter : Shooter
 
     protected override Vector3 GetAimPoint()
     {
-        // Shooter base chiede “aim point”: per l’enemy usiamo quello predetto (cachato)
+        // Shooter base chiede l'aim point: per l'enemy usiamo quello predetto (cache)
         return cachedAimPoint != Vector3.zero ? cachedAimPoint : GetPlayerAimPointRaw();
+    }
+
+    // ===================== POOLING SEMPLICE =====================
+
+    private void EnsurePoolFor(GameObject prefab)
+    {
+        if (prefab == null || ringPools.ContainsKey(prefab)) return;
+
+        var q = new Queue<GameObject>(Mathf.Max(1, poolSize));
+        for (int i = 0; i < Mathf.Max(1, poolSize); i++)
+        {
+            var go = Instantiate(prefab);
+            go.SetActive(false);
+            q.Enqueue(go);
+        }
+        ringPools[prefab] = q;
+    }
+
+    // Ring: prendo la testa; se Ã¨ ancora attiva la riciclo; la rimetto in coda subito
+    private GameObject TakeFromRing(GameObject prefab)
+    {
+        var q = ringPools[prefab];
+        var go = q.Dequeue();
+
+        if (go.activeSelf)
+        {
+            // riciclo forzato
+            go.SetActive(false);
+        }
+
+        q.Enqueue(go);
+        return go;
     }
 
     protected override void FirePellet(Vector3 direction, bool ballistic, Vector3 aimPoint)
     {
-        // Enemy: projectile
         if (muzzle == null || currentWeapon == null) return;
         if (currentWeapon.bulletPrefab == null) return;
 
-        Vector3 spawnPos = muzzle.position;
-        Quaternion rot = Quaternion.LookRotation(direction);
+        // Pool per l'arma corrente
+        EnsurePoolFor(currentWeapon.bulletPrefab);
 
-        GameObject bulletObj = Instantiate(currentWeapon.bulletPrefab, spawnPos, rot);
+        // 1) prendi dal ring, 2) configura, 3) attiva
+        GameObject bulletObj = TakeFromRing(currentWeapon.bulletPrefab);
 
-        // Se il prefab ha un Rigidbody, abilitiamo la gravità per Ballistic
+        bulletObj.transform.SetPositionAndRotation(
+            muzzle.position, Quaternion.LookRotation(direction));
+        bulletObj.SetActive(true);
+
+        // reset/velocitÃ  (nessuna cache: semplice e chiaro)
         if (bulletObj.TryGetComponent(out Rigidbody rb))
         {
             rb.useGravity = ballistic;
+            rb.velocity = muzzle.forward * currentWeapon.bulletSpeed;
+            rb.angularVelocity = Vector3.zero;
         }
 
-        Bullet bullet = bulletObj.GetComponent<Bullet>();
-        if (bullet != null)
+        // inizializzazione gameplay (danno/team)
+        if (bulletObj.TryGetComponent(out Bullet bullet))
         {
             Collider myCollider = GetComponent<Collider>();
             bullet.Initialize(currentWeapon.bulletSpeed, myHealth.Team, currentWeapon.bulletDamage, myCollider);
         }
+
+        // NOTA: il despawn/timeout Ã¨ gestito nel Bullet (OnEnable/Invoke) oppure via collisione (SetActive(false))
+    }
+
+    protected override void OnDisable()
+    {
+        base.OnDisable();
+
+        // spegne con grazia tutti i proiettili in tutti i pool
+        foreach (var kv in ringPools)
+            foreach (var b in kv.Value)
+                if (b) b.SetActive(false);
     }
 
     private void OnDrawGizmosSelected()
