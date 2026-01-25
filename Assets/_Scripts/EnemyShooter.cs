@@ -329,7 +329,7 @@ public class EnemyShooter : Shooter
         if (bulletObj.TryGetComponent(out Rigidbody rb))
         {
             rb.useGravity = ballistic;
-            rb.velocity = muzzle.forward * currentWeapon.bulletSpeed;
+            rb.linearVelocity = muzzle.forward * currentWeapon.bulletSpeed;
             rb.angularVelocity = Vector3.zero;
         }
 
@@ -343,9 +343,8 @@ public class EnemyShooter : Shooter
         // NOTA: il despawn/timeout è gestito nel Bullet (OnEnable/Invoke) oppure via collisione (SetActive(false))
     }
 
-    protected override void OnDisable()
+    protected void OnDisable()
     {
-        base.OnDisable();
 
         // spegne con grazia tutti i proiettili in tutti i pool
         foreach (var kv in ringPools)
