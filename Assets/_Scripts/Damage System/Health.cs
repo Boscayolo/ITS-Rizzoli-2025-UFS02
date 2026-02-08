@@ -40,6 +40,14 @@ public class Health : MonoBehaviour
         NotifyHealthChanged();
     }
 
+    public void SetHealth(int _maxHealth, int _currentHealth)
+    {
+        maxHealth = _maxHealth;
+        currentHealth = _currentHealth;
+
+        NotifyHealthChanged();
+    }
+
     public void TakeDamage(int amount)
     {
         if (amount <= 0 || _isDead)

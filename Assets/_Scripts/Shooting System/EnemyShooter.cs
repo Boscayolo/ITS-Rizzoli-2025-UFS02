@@ -13,7 +13,6 @@ public class EnemyShooter : Shooter
     [SerializeField] private float rotationSpeed = 10f;
 
     [Header("Weapon Pitch")]
-    [SerializeField] private Transform weaponHolderTransform;
     [SerializeField] private float weaponPitchSpeed = 10f;
     [SerializeField] private float minWeaponPitch = -45f;
     [SerializeField] private float maxWeaponPitch = 60f;
@@ -23,9 +22,6 @@ public class EnemyShooter : Shooter
     [SerializeField] private float velocityLerp = 0.4f;
     [SerializeField] private float maxLeadTime = 1.25f;
     [SerializeField] private float aimHeightFallback = 1.2f;
-
-    [Header("Pooling (ring per prefab, semplice)")]
-    [SerializeField] private int poolSize = 128;
 
     private Transform playerTr;
     private Collider playerCollider;
@@ -41,10 +37,6 @@ public class EnemyShooter : Shooter
     private Vector3 estimatedPlayerVel;
 
     private Vector3 cachedAimPoint;
-
-    // Una sola struttura: una Queue per ogni bulletPrefab (supporta armi diverse)
-    private readonly Dictionary<GameObject, Queue<GameObject>> ringPools
-        = new Dictionary<GameObject, Queue<GameObject>>();
 
     protected override void Awake()
     {
@@ -278,38 +270,6 @@ public class EnemyShooter : Shooter
         return cachedAimPoint != Vector3.zero ? cachedAimPoint : GetPlayerAimPointRaw();
     }
 
-    // ===================== POOLING SEMPLICE =====================
-
-    private void EnsurePoolFor(GameObject prefab)
-    {
-        if (prefab == null || ringPools.ContainsKey(prefab)) return;
-
-        var q = new Queue<GameObject>(Mathf.Max(1, poolSize));
-        for (int i = 0; i < Mathf.Max(1, poolSize); i++)
-        {
-            var go = Instantiate(prefab);
-            go.SetActive(false);
-            q.Enqueue(go);
-        }
-        ringPools[prefab] = q;
-    }
-
-    // Ring: prendo la testa; se è ancora attiva la riciclo; la rimetto in coda subito
-    private GameObject TakeFromRing(GameObject prefab)
-    {
-        var q = ringPools[prefab];
-        var go = q.Dequeue();
-
-        if (go.activeSelf)
-        {
-            // riciclo forzato
-            go.SetActive(false);
-        }
-
-        q.Enqueue(go);
-        return go;
-    }
-
     protected override void FirePellet(Vector3 direction, bool ballistic, Vector3 aimPoint)
     {
         if (muzzle == null || currentWeapon == null) return;
@@ -319,7 +279,7 @@ public class EnemyShooter : Shooter
         EnsurePoolFor(currentWeapon.bulletPrefab);
 
         // 1) prendi dal ring, 2) configura, 3) attiva
-        GameObject bulletObj = TakeFromRing(currentWeapon.bulletPrefab);
+        GameObject bulletObj = TakeFromQueue(currentWeapon.bulletPrefab);
 
         bulletObj.transform.SetPositionAndRotation(
             muzzle.position, Quaternion.LookRotation(direction));
@@ -343,14 +303,19 @@ public class EnemyShooter : Shooter
         // NOTA: il despawn/timeout è gestito nel Bullet (OnEnable/Invoke) oppure via collisione (SetActive(false))
     }
 
-    protected void OnDisable()
+     void OnDisable()
     {
-
         // spegne con grazia tutti i proiettili in tutti i pool
-        foreach (var kv in ringPools)
+        foreach (var kv in bulletPools)
             foreach (var b in kv.Value)
                 if (b) b.SetActive(false);
     }
+
+    public void SetEngageDistance(float _engageDistance)
+    {
+        engageDistance = _engageDistance;
+    }
+
 
     private void OnDrawGizmosSelected()
     {

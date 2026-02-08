@@ -35,6 +35,17 @@ public class WeaponData : ScriptableObject
     public GameObject bulletPrefab;
     [Min(0.1f)] public float bulletSpeed = 20f;
 
+    [Header("Tracer (Visual)")]
+    [Tooltip("Prefab con BulletTracer component per visualizzare i colpi hitscan")]
+    public GameObject tracerPrefab;
+    [Tooltip("Colore del tracer per quest'arma")]
+    public Color tracerColor = Color.yellow;
+    [Tooltip("Durata del tracer in secondi")]
+    [Range(0.05f, 1f)] public float tracerLifetime = 0.2f;
+
+    [Header("Weapon Model")]
+    public GameObject weaponModel;
+
     [Header("Shotgun (only if Shotgun)")]
     [Min(1)] public int pellets = 8;
     [Range(0f, 25f)] public float spreadAngle = 6f;
