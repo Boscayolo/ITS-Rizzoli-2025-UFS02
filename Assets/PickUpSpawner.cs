@@ -1,49 +1,135 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[Flags]
-public enum PickUpSpawnType
-{
-    None = 0,
-    HEAL = 1,
-    WEAPON = 2,
-    AMMO = 3
-}
-
 public class PickUpSpawner : MonoBehaviour
 {
-    [SerializeField] PickUp healPickUp;
-    [SerializeField] PickUp weaponPickUp;
-    [SerializeField] PickUp ammoPickUp;
+    [Flags]
+    public enum PickupFlags
+    {
+        None = 0,
+        Heal = 1 << 0,
+        Weapon = 1 << 1,
+        Ammo = 1 << 2
+    }
 
-    [SerializeField] PickUpSpawnType spawnType;
-    [SerializeField] List<WeaponData> elegibleWeapons = new();
+    [Header("Spawn Rules")]
+    [SerializeField] private PickupFlags allowedPickups = PickupFlags.Heal;
+    [SerializeField] private bool spawnOnStart = true;
+    [SerializeField] private float firstSpawnWaitTime = 2f;
 
-    [SerializeField] bool startsWithPickUp;
-    [SerializeField] Transform container;
-    [SerializeField] float cooldown;
+    [SerializeField] private float respawnDelay = 5f;
 
-    GameObject currentPickUp;
+    [Header("Spawn Point")]
+    [SerializeField] private Transform spawnPoint;
+    [SerializeField] private bool parentSpawnedToSpawner = false;
+    [SerializeField] private bool randomYRotation = false;
+
+    [Header("Prefabs (assegna 1+ prefab per tipo)")]
+    [SerializeField] private GameObject healPrefab;
+    [SerializeField] private GameObject weaponPrefab;
+    [SerializeField] private GameObject ammoPrefab;
+
+    private GameObject _currentPickup;
+    private Coroutine _spawnRoutine;
 
     private void Awake()
     {
-        //if(startsWithPickUp)
-        //{
-        //    SpawnPickup();
-        //    return;
-        //}
-
-        //StartCoroutine(WaitCooldown(cooldown));
+        if (spawnPoint == null)
+            spawnPoint = transform;
     }
 
-    void SpawnPickUp()
+    private void Start()
     {
-        if(currentPickUp == null)
+        if (spawnOnStart) TrySpawnNow();
+        else _spawnRoutine = StartCoroutine(SpawnAfter(firstSpawnWaitTime));
+    }
+
+    private void Update()
+    {
+        // Se il pickup è stato raccolto/distrutto, Unity lo considera "null"
+        if (_currentPickup == null && _spawnRoutine == null)
         {
-            bool multiState = spawnType == PickUpSpawnType.HEAL | spawnType == PickUpSpawnType.WEAPON | spawnType == PickUpSpawnType.AMMO;
-            //if (Enum.)
+            _spawnRoutine = StartCoroutine(SpawnAfter(respawnDelay));
         }
     }
 
+    public bool HasActivePickup() => _currentPickup != null;
+
+    public void TrySpawnNow()
+    {
+        if (_currentPickup != null) return;
+
+        var candidates = BuildCandidateList();
+        if (candidates.Count == 0)
+        {
+            Debug.LogWarning($"{name} PickUpSpawner: nessun prefab candidato. Controlla AllowedPickups e le liste prefab.");
+            return;
+        }
+
+        var prefab = candidates[UnityEngine.Random.Range(0, candidates.Count)];
+        var pos = spawnPoint.position;
+
+        Quaternion rot = spawnPoint.rotation;
+        if (randomYRotation)
+            rot = Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f);
+
+        var parent = parentSpawnedToSpawner ? transform : null;
+        _currentPickup = Instantiate(prefab, pos, rot, parent);
+    }
+
+    public void DestroyCurrentAndRespawn(float delayOverride = -1f)
+    {
+        if (_currentPickup != null)
+            Destroy(_currentPickup);
+
+        if (_spawnRoutine != null)
+        {
+            StopCoroutine(_spawnRoutine);
+            _spawnRoutine = null;
+        }
+
+        float d = (delayOverride >= 0f) ? delayOverride : respawnDelay;
+        _spawnRoutine = StartCoroutine(SpawnAfter(d));
+    }
+
+    private IEnumerator SpawnAfter(float delay)
+    {
+        if (delay > 0f) yield return new WaitForSeconds(delay);
+        _spawnRoutine = null;
+        TrySpawnNow();
+    }
+
+    private List<GameObject> BuildCandidateList()
+    {
+        var list = new List<GameObject>(16);
+
+        if ((allowedPickups & PickupFlags.Heal) != 0)
+            AddValidPrefab(healPrefab, list);
+
+        if ((allowedPickups & PickupFlags.Weapon) != 0)
+            AddValidPrefab(weaponPrefab, list);
+
+        if ((allowedPickups & PickupFlags.Ammo) != 0)
+            AddValidPrefab(ammoPrefab, list);
+
+        return list;
+    }
+
+    private static void AddValidPrefab(GameObject source, List<GameObject> dest)
+    {
+        if (source == null) return;
+        if (source != null) dest.Add(source);
+    }
+
+#if UNITY_EDITOR
+    private void OnDrawGizmosSelected()
+    {
+        Transform p = spawnPoint != null ? spawnPoint : transform;
+        Gizmos.matrix = Matrix4x4.TRS(p.position, p.rotation, Vector3.one);
+        Gizmos.DrawWireSphere(Vector3.zero, 0.35f);
+        Gizmos.DrawLine(Vector3.zero, Vector3.forward * 0.75f);
+    }
+#endif
 }

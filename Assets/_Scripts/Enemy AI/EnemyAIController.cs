@@ -7,7 +7,6 @@ public class EnemyAIController : MonoBehaviour
 {
     [Header("References")]
     public EnemyShooter shooter;
-    public Transform player;
 
     [Header("Combat Settings")]
     public float shootRange = 18f;
@@ -29,9 +28,6 @@ public class EnemyAIController : MonoBehaviour
 
         if (shooter == null)
             shooter = GetComponentInChildren<EnemyShooter>();
-
-        if (player != null)
-            vision.SetTarget(player);
 
         health.OnDied += OnDeath;
 
