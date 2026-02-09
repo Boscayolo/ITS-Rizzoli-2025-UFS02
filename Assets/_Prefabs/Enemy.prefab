@@ -193,6 +193,7 @@ GameObject:
   - component: {fileID: 301902596004878841}
   - component: {fileID: 5429080792357047825}
   - component: {fileID: 3065029428300725343}
+  - component: {fileID: 8862836240651711133}
   m_Layer: 6
   m_Name: Enemy
   m_TagString: Untagged
@@ -232,6 +233,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Entity
   m_Entity: {fileID: 11400000, guid: 3ac7178a889af8b47ba164bb541ebb93, type: 2}
   m_Health: {fileID: 5822818604668431824}
+  m_Controller: {fileID: 0}
   m_Shooter: {fileID: 5429080792357047825}
   m_Renderer: {fileID: 2533936568287305407}
 --- !u!33 &1472090891597923511
@@ -397,11 +399,6 @@ MonoBehaviour:
   weaponHolderTransform: {fileID: 340468205331251390}
   bulletsLeft: 0
   bulletPoolSize: 30
-  detectionRadius: 50
-  scanFrequency: 0.25
-  spotReactionTime: 0.15
-  engageDistance: 50
-  rotationSpeed: 10
   weaponPitchSpeed: 10
   minWeaponPitch: -45
   maxWeaponPitch: 60
@@ -421,10 +418,48 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAIController
   shooter: {fileID: 5429080792357047825}
+  patrolPath: {fileID: 0}
+  agent: {fileID: 0}
+  patrolSpeed: 2
+  chaseSpeed: 4
+  fleeSpeed: 6
+  searchSpeed: 3
   shootRange: 18
+  engageDistance: 50
+  fleeDistance: 8
+  fleeSafeDistance: 15
+  tooCloseTimer: 2
+  searchDuration: 10
+  lookAroundDuration: 3
+  lookAroundSpeed: 90
+  waypointWaitMin: 2
+  waypointWaitMax: 5
+  waypointReachedDistance: 1
   currentState: 0
   vision: {fileID: 8850123334829603675}
   health: {fileID: 5822818604668431824}
+--- !u!195 &8862836240651711133
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4196684017101599540}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 1
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
 --- !u!1 &7212759659189573453
 GameObject:
   m_ObjectHideFlags: 0
