@@ -419,7 +419,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAIController
   shooter: {fileID: 5429080792357047825}
   patrolPath: {fileID: 0}
-  agent: {fileID: 0}
+  agent: {fileID: 8862836240651711133}
   patrolSpeed: 2
   chaseSpeed: 4
   fleeSpeed: 6
