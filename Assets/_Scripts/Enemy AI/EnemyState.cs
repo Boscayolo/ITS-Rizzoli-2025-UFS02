@@ -9,9 +9,9 @@ public abstract class EnemyState
 {
     protected EnemyAIController controller;
 
-    protected EnemyState(EnemyAIController controller)
+    protected EnemyState(EnemyAIController _controller)
     {
-        this.controller = controller;
+        this.controller = _controller;
     }
 
     public virtual void Enter() { }
@@ -34,9 +34,10 @@ public class EnemyState_Idle : EnemyState
     public override void Tick()
     {
         bool canSeePlayer = controller.vision.canSeePlayer;
-        bool isInRange = controller.vision.distanceToPlayer <= controller.shootRange;
+        bool isInEngageRange = controller.vision.distanceToPlayer <= controller.engageDistance;
 
-        if (canSeePlayer && isInRange)
+        // Entra in SHOOT se può vedere il player ED è dentro la distanza di ingaggio
+        if (canSeePlayer && isInEngageRange)
         {
             controller.ChangeState(AIState.SHOOT);
         }
@@ -64,19 +65,21 @@ public class EnemyState_Shoot : EnemyState
         }
 
         bool canSeePlayer = controller.vision.canSeePlayer;
-        bool isInRange = controller.vision.distanceToPlayer <= controller.shootRange;
+        bool isInEngageRange = controller.vision.distanceToPlayer <= controller.engageDistance;
+        bool isInShootRange = controller.vision.distanceToPlayer <= controller.shootRange;
 
-        if (!canSeePlayer || !isInRange)
+        // Esci da SHOOT se non vedi più il player o è fuori dalla distanza di ingaggio
+        if (!canSeePlayer || !isInEngageRange)
         {
             controller.ChangeState(AIState.IDLE);
             return;
         }
 
-        // Face the player
+        // Ruota il corpo verso il player
         controller.FaceTowards(controller.vision.aimPoint);
 
-        // Shoot
-        if (controller.shooter != null)
+        // Spara SOLO se è dentro la shoot range (più corta dell'engage range)
+        if (isInShootRange && controller.shooter != null)
         {
             controller.shooter.TryShoot();
         }

@@ -10,6 +10,7 @@ public class EnemyAIController : MonoBehaviour
 
     [Header("Combat Settings")]
     public float shootRange = 18f;
+    public float engageDistance = 50f;
 
     // Current state
     public AIState currentState = AIState.IDLE;
@@ -23,14 +24,22 @@ public class EnemyAIController : MonoBehaviour
 
     void Start()
     {
-        vision = GetComponent<VisionScanner>();
-        health = GetComponent<Health>();
+        // Ottieni componenti
+        if (!vision) vision = GetComponent<VisionScanner>();
+        if (!health) health = GetComponent<Health>();
+        if (!shooter) shooter = GetComponentInChildren<EnemyShooter>();
 
-        if (shooter == null)
-            shooter = GetComponentInChildren<EnemyShooter>();
+        // IMPORTANTE: Collega il VisionScanner allo Shooter
+        if (shooter != null && vision != null)
+        {
+            shooter.SetVisionScanner(vision);
+        }
 
-        health.OnDied += OnDeath;
+        // Registra evento morte
+        if (health != null)
+            health.OnDied += OnDeath;
 
+        // Inizia in stato IDLE
         ChangeState(AIState.IDLE);
     }
 
@@ -72,6 +81,20 @@ public class EnemyAIController : MonoBehaviour
                 targetRotation,
                 10f * Time.deltaTime
             );
+        }
+    }
+
+    /// <summary>
+    /// Configura la distanza massima di ingaggio (chiamato da Entity durante l'inizializzazione)
+    /// </summary>
+    public void SetEngageDistance(float distance)
+    {
+        engageDistance = distance;
+
+        // Aggiorna anche il VisionScanner se presente
+        if (vision != null)
+        {
+            vision.detectionRadius = Mathf.Max(distance, vision.detectionRadius);
         }
     }
 

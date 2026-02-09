@@ -31,6 +31,8 @@ public class PickUp_Weapon : PickUp
         {
             shooter.EquipWeapon(weapon);
             gameObject.SetActive(false);
+
+            base.Absorption(other);
         }
     }
 }

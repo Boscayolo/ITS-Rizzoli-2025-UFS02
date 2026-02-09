@@ -3,15 +3,6 @@ using UnityEngine;
 
 public class EnemyShooter : Shooter
 {
-    [Header("Detection")]
-    [SerializeField] private float detectionRadius = 50f;
-    [SerializeField] private float scanFrequency = 0.25f;
-    [SerializeField] private float spotReactionTime = 0.15f;
-
-    [Header("Engage")]
-    [SerializeField] private float engageDistance = 50f;
-    [SerializeField] private float rotationSpeed = 10f;
-
     [Header("Weapon Pitch")]
     [SerializeField] private float weaponPitchSpeed = 10f;
     [SerializeField] private float minWeaponPitch = -45f;
@@ -23,20 +14,19 @@ public class EnemyShooter : Shooter
     [SerializeField] private float maxLeadTime = 1.25f;
     [SerializeField] private float aimHeightFallback = 1.2f;
 
-    private Transform playerTr;
-    private Collider playerCollider;
     private Health myHealth;
     private Transform weaponHolder;
 
-    private bool playerSpotted;
-    private float spotTimer;
-    private float scanTimer;
-
+    // Velocity estimation per prediction
     private bool hasPlayerPos;
     private Vector3 lastPlayerPos;
     private Vector3 estimatedPlayerVel;
 
+    // Cache dell'aim point calcolato
     private Vector3 cachedAimPoint;
+
+    // Reference al VisionScanner (impostato dall'AIController)
+    private VisionScanner vision;
 
     protected override void Awake()
     {
@@ -44,83 +34,42 @@ public class EnemyShooter : Shooter
         myHealth = GetComponent<Health>();
         weaponHolder = weaponHolderTransform;
 
-        scanTimer = 0f; // primo scan immediato
-
         // Pre-warm opzionale per l'arma corrente
         if (currentWeapon != null && currentWeapon.bulletPrefab != null)
             EnsurePoolFor(currentWeapon.bulletPrefab);
     }
 
-    private void Update()
+    /// <summary>
+    /// Imposta il reference al VisionScanner (chiamato dall'AIController)
+    /// </summary>
+    public void SetVisionScanner(VisionScanner _vision)
     {
-        ScanForPlayer();
-
-        if (!playerSpotted || playerTr == null || currentWeapon == null)
-            return;
-
-        UpdatePlayerVelocityEstimate();
-
-        if (spotTimer < spotReactionTime)
-        {
-            spotTimer += Time.deltaTime;
-            return;
-        }
-
-        cachedAimPoint = GetPredictedAimPoint();
-
-        if (!CanEngage(cachedAimPoint))
-            return;
-
-        RotateTowardsAimPoint(cachedAimPoint);
-
-        if (bulletsLeft > 0)
-        {
-            if (CheckLineOfSight(cachedAimPoint))
-                TryShoot();
-        }
-        else if (!reloading)
-        {
-            Reload();
-        }
+        vision = _vision;
+        ResetVelocityEstimate();
     }
 
-    private void ScanForPlayer()
+    private void Update()
     {
-        scanTimer -= Time.deltaTime;
-        if (scanTimer > 0f) return;
-        scanTimer = Mathf.Max(0.01f, scanFrequency);
-
-        bool previouslySpotted = playerSpotted;
-        playerSpotted = false;
-        playerTr = null;
-        playerCollider = null;
-
-        Collider[] colliders = Physics.OverlapSphere(
-            transform.position, detectionRadius, ~0, QueryTriggerInteraction.Ignore);
-
-        for (int i = 0; i < colliders.Length; i++)
+        // Se non abbiamo vision scanner o target, non facciamo nulla
+        if (vision == null || !vision.hasTarget || currentWeapon == null)
         {
-            Health h = colliders[i].GetComponentInParent<Health>();
-            if (h != null && h.Team == Team.Player)
-            {
-                playerSpotted = true;
-                playerTr = h.transform;
-                playerCollider = colliders[i];
-
-                if (!previouslySpotted)
-                {
-                    spotTimer = 0f;
-                    ResetVelocityEstimate();
-                }
-                return;
-            }
+            ResetVelocityEstimate();
+            return;
         }
 
-        // perso di vista
-        if (previouslySpotted)
+        // Aggiorniamo la stima della velocità del player
+        UpdatePlayerVelocityEstimate();
+
+        // Calcoliamo l'aim point predetto
+        cachedAimPoint = GetPredictedAimPoint();
+
+        // Ruotiamo verso il target
+        RotateTowardsAimPoint(cachedAimPoint);
+
+        // Gestione munizioni
+        if (bulletsLeft <= 0 && !reloading)
         {
-            spotTimer = 0f;
-            ResetVelocityEstimate();
+            Reload();
         }
     }
 
@@ -133,9 +82,9 @@ public class EnemyShooter : Shooter
 
     private void UpdatePlayerVelocityEstimate()
     {
-        if (playerTr == null) return;
+        if (vision == null || !vision.hasTarget) return;
 
-        Vector3 pos = playerTr.position;
+        Vector3 pos = vision.targetPosition;
         float dt = Mathf.Max(Time.deltaTime, 0.0001f);
 
         if (!hasPlayerPos)
@@ -151,31 +100,20 @@ public class EnemyShooter : Shooter
         lastPlayerPos = pos;
     }
 
-    private Vector3 GetPlayerAimPointRaw()
-    {
-        if (playerTr == null)
-            return transform.position;
-
-        if (playerCollider != null)
-            return playerCollider.bounds.center;
-
-        Collider c = playerTr.GetComponentInChildren<Collider>();
-        if (c != null)
-            return c.bounds.center;
-
-        return playerTr.position + Vector3.up * aimHeightFallback;
-    }
-
     private Vector3 GetPredictedAimPoint()
     {
+        if (vision == null || !vision.hasTarget)
+            return transform.position;
+
         Vector3 origin = (muzzle != null) ? muzzle.position : transform.position;
-        Vector3 target = GetPlayerAimPointRaw();
+        Vector3 target = vision.aimPoint; // Usiamo l'aim point del VisionScanner
 
         float s = Mathf.Max(currentWeapon.bulletSpeed, 0.001f);
         Vector3 v = estimatedPlayerVel;
         Vector3 r = target - origin;
 
-        // |r + v t| = s t  -> (v·v - s^2)t^2 + 2(r·v)t + (r·r) = 0
+        // Risolviamo l'equazione quadratica per la predizione
+        // |r + v*t| = s*t  -> (v·v - s²)t² + 2(r·v)t + (r·r) = 0
         float a = Vector3.Dot(v, v) - s * s;
         float b = 2f * Vector3.Dot(r, v);
         float c = Vector3.Dot(r, r);
@@ -184,15 +122,18 @@ public class EnemyShooter : Shooter
 
         if (Mathf.Abs(a) < 0.0001f)
         {
+            // Equazione lineare
             if (Mathf.Abs(b) > 0.0001f) t = -c / b;
             else t = 0f;
         }
         else
         {
+            // Equazione quadratica
             float disc = b * b - 4f * a * c;
 
             if (disc < 0f)
             {
+                // Nessuna soluzione reale, usiamo tempo base
                 t = r.magnitude / s;
             }
             else
@@ -201,6 +142,7 @@ public class EnemyShooter : Shooter
                 float t1 = (-b - sqrt) / (2f * a);
                 float t2 = (-b + sqrt) / (2f * a);
 
+                // Prendiamo la soluzione positiva minima
                 if (t1 > 0f && t2 > 0f) t = Mathf.Min(t1, t2);
                 else if (t1 > 0f) t = t1;
                 else if (t2 > 0f) t = t2;
@@ -212,25 +154,9 @@ public class EnemyShooter : Shooter
         return target + v * t;
     }
 
-    private bool CanEngage(Vector3 aimPoint)
-    {
-        float dist = Vector3.Distance(transform.position, aimPoint);
-        return dist <= engageDistance;
-    }
-
     private void RotateTowardsAimPoint(Vector3 aimPoint)
     {
-        // Yaw corpo
-        Vector3 toTarget = aimPoint - transform.position;
-        Vector3 dirY = new Vector3(toTarget.x, 0f, toTarget.z);
-
-        if (dirY.sqrMagnitude > 0.0001f)
-        {
-            Quaternion yawRot = Quaternion.LookRotation(dirY.normalized);
-            transform.rotation = Quaternion.Lerp(transform.rotation, yawRot, rotationSpeed * Time.deltaTime);
-        }
-
-        // Pitch arma (se presente)
+        // Pitch dell'arma (se presente weaponHolder)
         if (weaponHolder != null && muzzle != null)
         {
             Vector3 dir = (aimPoint - muzzle.position).normalized;
@@ -247,27 +173,13 @@ public class EnemyShooter : Shooter
         }
     }
 
-    private bool CheckLineOfSight(Vector3 aimPoint)
-    {
-        if (muzzle == null) return false;
-
-        Vector3 origin = muzzle.position;
-        Vector3 dir = (aimPoint - origin).normalized;
-        float dist = Vector3.Distance(origin, aimPoint);
-
-        if (Physics.Raycast(origin, dir, out RaycastHit hit, dist, ~0, QueryTriggerInteraction.Ignore))
-        {
-            Health h = hit.collider.GetComponentInParent<Health>();
-            return (h != null && h.Team == Team.Player);
-        }
-
-        return false;
-    }
-
     protected override Vector3 GetAimPoint()
     {
-        // Shooter base chiede l'aim point: per l'enemy usiamo quello predetto (cache)
-        return cachedAimPoint != Vector3.zero ? cachedAimPoint : GetPlayerAimPointRaw();
+        // Shooter base chiede l'aim point: restituiamo quello predetto
+        if (vision != null && vision.hasTarget)
+            return cachedAimPoint != Vector3.zero ? cachedAimPoint : vision.aimPoint;
+
+        return transform.forward * 100f;
     }
 
     protected override void FirePellet(Vector3 direction, bool ballistic, Vector3 aimPoint)
@@ -275,17 +187,17 @@ public class EnemyShooter : Shooter
         if (muzzle == null || currentWeapon == null) return;
         if (currentWeapon.bulletPrefab == null) return;
 
-        // Pool per l'arma corrente
+        // Assicuriamoci che il pool esista
         EnsurePoolFor(currentWeapon.bulletPrefab);
 
-        // 1) prendi dal ring, 2) configura, 3) attiva
+        // Prendi dal pool, configura e attiva
         GameObject bulletObj = TakeFromQueue(currentWeapon.bulletPrefab);
 
         bulletObj.transform.SetPositionAndRotation(
             muzzle.position, Quaternion.LookRotation(direction));
         bulletObj.SetActive(true);
 
-        // reset/velocità (nessuna cache: semplice e chiaro)
+        // Configura physics
         if (bulletObj.TryGetComponent(out Rigidbody rb))
         {
             rb.useGravity = ballistic;
@@ -293,36 +205,19 @@ public class EnemyShooter : Shooter
             rb.angularVelocity = Vector3.zero;
         }
 
-        // inizializzazione gameplay (danno/team)
+        // Inizializza bullet component
         if (bulletObj.TryGetComponent(out Bullet bullet))
         {
             Collider myCollider = GetComponent<Collider>();
             bullet.Initialize(currentWeapon.bulletSpeed, myHealth.Team, currentWeapon.bulletDamage, myCollider);
         }
-
-        // NOTA: il despawn/timeout è gestito nel Bullet (OnEnable/Invoke) oppure via collisione (SetActive(false))
     }
 
-     void OnDisable()
+    void OnDisable()
     {
-        // spegne con grazia tutti i proiettili in tutti i pool
+        // Disattiva tutti i proiettili nei pool
         foreach (var kv in bulletPools)
             foreach (var b in kv.Value)
                 if (b) b.SetActive(false);
-    }
-
-    public void SetEngageDistance(float _engageDistance)
-    {
-        engageDistance = _engageDistance;
-    }
-
-
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRadius);
-
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, engageDistance);
     }
 }

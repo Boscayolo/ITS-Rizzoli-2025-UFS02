@@ -31,7 +31,7 @@ public class PickUpSpawner : MonoBehaviour
     [SerializeField] private GameObject weaponPrefab;
     [SerializeField] private GameObject ammoPrefab;
 
-    private GameObject _currentPickup;
+    bool isFreeForRespawn = true;
     private Coroutine _spawnRoutine;
 
     private void Awake()
@@ -49,17 +49,17 @@ public class PickUpSpawner : MonoBehaviour
     private void Update()
     {
         // Se il pickup è stato raccolto/distrutto, Unity lo considera "null"
-        if (_currentPickup == null && _spawnRoutine == null)
+        if (isFreeForRespawn && _spawnRoutine == null)
         {
             _spawnRoutine = StartCoroutine(SpawnAfter(respawnDelay));
         }
     }
 
-    public bool HasActivePickup() => _currentPickup != null;
+    public bool HasActivePickup() => !isFreeForRespawn;
 
     public void TrySpawnNow()
     {
-        if (_currentPickup != null) return;
+        if (!isFreeForRespawn) return;
 
         var candidates = BuildCandidateList();
         if (candidates.Count == 0)
@@ -76,14 +76,22 @@ public class PickUpSpawner : MonoBehaviour
             rot = Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f);
 
         var parent = parentSpawnedToSpawner ? transform : null;
-        _currentPickup = Instantiate(prefab, pos, rot, parent);
+        GameObject nPickUp = Instantiate(prefab, pos, rot, parent);
+
+        if(nPickUp.TryGetComponent(out PickUp pu))
+        {
+            pu.OnPickedUp += FreePickUpSpace;
+        }
+    }
+
+    void FreePickUpSpace(PickUp freedPickUp)
+    {
+        isFreeForRespawn = true;
+        freedPickUp.OnPickedUp -= FreePickUpSpace;
     }
 
     public void DestroyCurrentAndRespawn(float delayOverride = -1f)
     {
-        if (_currentPickup != null)
-            Destroy(_currentPickup);
-
         if (_spawnRoutine != null)
         {
             StopCoroutine(_spawnRoutine);

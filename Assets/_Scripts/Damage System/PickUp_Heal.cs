@@ -9,6 +9,8 @@ public class PickUp_Heal : PickUp
         {
             health.Heal(healAmount);
             gameObject.SetActive(false);
+
+            base.Absorption(other);
         }
     }
 }

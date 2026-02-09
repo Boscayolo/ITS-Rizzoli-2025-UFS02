@@ -1,3 +1,4 @@
+using Unity.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -12,7 +13,7 @@ public class VisionScanner : MonoBehaviour
     public LayerMask obstacleMask = ~0;
 
     // Public results (read by EnemyAIController)
-    public bool hasTarget = false;
+    [ReadOnly]public bool hasTarget = false;
     public bool canSeePlayer = false;
     public float distanceToPlayer = 999f;
     public Vector3 targetPosition;
