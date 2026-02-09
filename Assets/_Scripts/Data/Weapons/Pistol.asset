@@ -17,9 +17,9 @@ MonoBehaviour:
   bulletPattern: 0
   shootingBehavior: 1
   range: 50
-  bulletDamage: 1
+  bulletDamage: 20
   clipSize: 12
-  fireRate: 5
+  fireRate: 3
   reloadTime: 1.2
   bulletPrefab: {fileID: 7080220478652997347, guid: 21cfc42d2cbbb4b49be8e1a428eeec7e, type: 3}
   bulletSpeed: 20

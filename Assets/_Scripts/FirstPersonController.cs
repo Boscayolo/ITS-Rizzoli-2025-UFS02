@@ -7,6 +7,7 @@ public class FirstPersonController : MonoBehaviour
     [Header("Movement")]
     [SerializeField] float moveSpeed = 5f;
     [SerializeField] float crouchSpeedMultiplier = 0.5f;
+    [SerializeField] float sprintSpeedMultiplier = 1.5f;
 
     [Header("View")]
     [SerializeField] Transform cameraRoot;
@@ -52,6 +53,8 @@ public class FirstPersonController : MonoBehaviour
         inputActions.Player.Jump.performed += _ => TryJump();
         inputActions.Player.Crouch.performed += _ => StartCrouch();
         inputActions.Player.Crouch.canceled += _ => StopCrouch();
+        inputActions.Player.Sprint.performed += _ => StartSprint();
+        inputActions.Player.Sprint.canceled += _ => StopSprint();
 
         // Init yaw dal player
         yaw = transform.eulerAngles.y;
@@ -158,5 +161,15 @@ public class FirstPersonController : MonoBehaviour
         isCrouching = false;
         controller.height = originalHeight;
         controller.center = originalCenter;
+    }
+
+    void StartSprint()
+    {
+
+    }
+
+    void StopSprint()
+    {
+
     }
 }

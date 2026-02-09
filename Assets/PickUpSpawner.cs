@@ -77,6 +77,7 @@ public class PickUpSpawner : MonoBehaviour
 
         var parent = parentSpawnedToSpawner ? transform : null;
         GameObject nPickUp = Instantiate(prefab, pos, rot, parent);
+        isFreeForRespawn = false;
 
         if(nPickUp.TryGetComponent(out PickUp pu))
         {

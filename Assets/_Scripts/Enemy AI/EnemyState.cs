@@ -390,7 +390,7 @@ public class EnemyState_Flee : EnemyState
     private Vector3 fleeDestination;
     private bool hasValidDestination = false;
     private float recalculateTimer = 0f;
-    private const float RECALCULATE_INTERVAL = 1f;
+    private const float RECALCULATE_INTERVAL = .2f;
 
     public EnemyState_Flee(EnemyAIController controller) : base(controller) { }
 

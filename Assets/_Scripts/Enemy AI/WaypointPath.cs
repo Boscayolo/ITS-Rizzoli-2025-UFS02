@@ -14,6 +14,11 @@ public class WaypointPath : MonoBehaviour
     public Color pathColor = Color.cyan;
     public float waypointRadius = 0.5f;
 
+    private void Awake()
+    {
+        transform.SetParent(null);
+    }
+
     private void OnValidate()
     {
         // Auto-populate waypoints from children if empty
@@ -81,4 +86,6 @@ public class WaypointPath : MonoBehaviour
     /// Get total number of waypoints
     /// </summary>
     public int WaypointCount => waypoints != null ? waypoints.Length : 0;
+
+
 }

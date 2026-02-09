@@ -15,9 +15,9 @@ MonoBehaviour:
   weaponId: weapon_id
   displayName: Weapon
   bulletPattern: 2
-  shootingBehavior: 0
-  range: 60
-  bulletDamage: 1
+  shootingBehavior: 1
+  range: 100
+  bulletDamage: 8
   clipSize: 8
   fireRate: 1
   reloadTime: 3

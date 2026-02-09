@@ -126,6 +126,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d816c738a83350e4290cecd378a601b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickUp_Heal
+  rotationSpeed: 3
   healAmount: 30
 --- !u!1 &3071457864658175788
 GameObject:

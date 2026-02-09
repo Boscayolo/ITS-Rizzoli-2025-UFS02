@@ -16,10 +16,10 @@ MonoBehaviour:
   displayName: Rifle
   bulletPattern: 0
   shootingBehavior: 0
-  range: 50
-  bulletDamage: 1
-  clipSize: 10
-  fireRate: 2
+  range: 100
+  bulletDamage: 14
+  clipSize: 25
+  fireRate: 5
   reloadTime: 2
   bulletPrefab: {fileID: 7080220478652997347, guid: 21cfc42d2cbbb4b49be8e1a428eeec7e, type: 3}
   bulletSpeed: 15

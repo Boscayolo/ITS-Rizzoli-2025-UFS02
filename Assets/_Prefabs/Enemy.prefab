@@ -169,7 +169,7 @@ MonoBehaviour:
   checkInterval: 0.2
   obstacleMask:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 513
   hasTarget: 0
   canSeePlayer: 0
   distanceToPlayer: 999
@@ -217,6 +217,7 @@ Transform:
   - {fileID: 340468205331251390}
   - {fileID: 4841202257516423808}
   - {fileID: 1387534161821545487}
+  - {fileID: 6566757679756611302}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
 --- !u!114 &9113889999930275901
@@ -379,7 +380,7 @@ Rigidbody:
   m_ImplicitTensor: 1
   m_UseGravity: 1
   m_IsKinematic: 0
-  m_Interpolate: 0
+  m_Interpolate: 1
   m_Constraints: 122
   m_CollisionDetection: 0
 --- !u!114 &5429080792357047825
@@ -402,8 +403,8 @@ MonoBehaviour:
   weaponPitchSpeed: 10
   minWeaponPitch: -45
   maxWeaponPitch: 60
-  velocityLerp: 0.4
-  maxLeadTime: 1.25
+  velocityLerp: 0.2
+  maxLeadTime: 0.3
   aimHeightFallback: 1.2
 --- !u!114 &3065029428300725343
 MonoBehaviour:
@@ -418,18 +419,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAIController
   shooter: {fileID: 5429080792357047825}
-  patrolPath: {fileID: 0}
+  patrolPath: {fileID: 1463012695574201800}
   agent: {fileID: 8862836240651711133}
   patrolSpeed: 2
-  chaseSpeed: 4
-  fleeSpeed: 6
-  searchSpeed: 3
+  chaseSpeed: 15
+  fleeSpeed: 15
+  searchSpeed: 10
   shootRange: 18
   engageDistance: 50
-  fleeDistance: 8
+  fleeDistance: 50
   fleeSafeDistance: 15
   tooCloseTimer: 2
-  searchDuration: 10
+  searchDuration: 6
   lookAroundDuration: 3
   lookAroundSpeed: 90
   waypointWaitMin: 2
@@ -448,7 +449,7 @@ NavMeshAgent:
   m_Enabled: 1
   m_AgentTypeID: 0
   m_Radius: 0.5
-  m_Speed: 3.5
+  m_Speed: 10
   m_Acceleration: 8
   avoidancePriority: 50
   m_AngularSpeed: 120
@@ -460,6 +461,54 @@ NavMeshAgent:
   m_BaseOffset: 1
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!1 &4588069720307224365
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6566757679756611302}
+  - component: {fileID: 1463012695574201800}
+  m_Layer: 0
+  m_Name: WaypointPath
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6566757679756611302
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4588069720307224365}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 0.70710677, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: -3.069109, y: -0.84, z: -0.31792998}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5771278293406432749}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1463012695574201800
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4588069720307224365}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc91ef2f30935e94283a91e54a0f30cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WaypointPath
+  waypoints: []
+  showGizmos: 1
+  pathColor: {r: 0, g: 1, b: 1, a: 1}
+  waypointRadius: 0.5
 --- !u!1 &7212759659189573453
 GameObject:
   m_ObjectHideFlags: 0
