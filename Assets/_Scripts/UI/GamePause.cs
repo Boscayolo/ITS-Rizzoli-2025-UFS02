@@ -9,6 +9,10 @@ public class GamePause : MonoBehaviour
     [SerializeField] private Button unpauseButton;
     [SerializeField] private bool startPaused = false;
 
+    [Header("Main Menu Section")]
+    [SerializeField] Button mainMenuButton;
+    [SerializeField] int menuSceneIndex = 0;
+
     private bool paused;
 
     private void Awake()
@@ -18,8 +22,11 @@ public class GamePause : MonoBehaviour
         _playerInput.Player.Pause.performed += OnPausePerformed;
         //_playerInput.Player.Pause.performed += (ctx) => TogglePause(); //equivalente alla riga superiore
 
-        //if (unpauseButton != null)
-        //    unpauseButton.onClick.AddListener(TogglePause);
+        if (unpauseButton != null)
+            unpauseButton.onClick.AddListener(TogglePause);
+
+        if (mainMenuButton != null)
+            mainMenuButton.onClick.AddListener(ReturnToMenu);
 
         SetPaused(startPaused);
     }
@@ -39,8 +46,11 @@ public class GamePause : MonoBehaviour
             _playerInput.Player.Pause.performed -= OnPausePerformed;
         //_playerInput.Player.Pause.performed -= (ctx) => TogglePause();
 
-        //if (unpauseButton != null)
-        //    unpauseButton.onClick.RemoveListener(TogglePause);
+        if (unpauseButton != null)
+            unpauseButton.onClick.RemoveListener(TogglePause);
+
+        if (mainMenuButton != null)
+            mainMenuButton.onClick.RemoveListener(ReturnToMenu);
 
         _playerInput?.Dispose();
     }
@@ -79,5 +89,16 @@ public class GamePause : MonoBehaviour
 
         Time.timeScale = 1f;
         Utilities.SetCursorLocked(false);
+    }
+
+    public void ReturnToMenu()
+    {
+        if(SceneChanger.Instance == null)
+        {
+            Debug.Log("Scene changer not found, failed to load menu");
+            return;
+        }
+
+        SceneChanger.Instance.LoadSingleAsync(menuSceneIndex);
     }
 }

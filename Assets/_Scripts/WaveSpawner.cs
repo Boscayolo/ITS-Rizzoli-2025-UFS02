@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -8,6 +9,8 @@ public class WaveSpawner : MonoBehaviour
     int currentWave = 0;
     int currentWaveEnemies = 0;
     int currentKilledEnemies = 0;
+
+    public Action OnWavesCompleted;
 
     private void Awake()
     {
@@ -20,14 +23,19 @@ public class WaveSpawner : MonoBehaviour
         GenerateWave(waves[currentWave]);
     }
 
+    private void Start()
+    {
+        GameManager.Instance?.RegisterSpawner(this);
+    }
+
     void GenerateWave(WaveData wave)
     {
         currentWaveEnemies = wave.enemiesInWave;
 
         for(int i= 0; i < wave.enemiesInWave; i++)
         {
-            float randomX = transform.position.x + Random.Range(-randomSpawnDistance, randomSpawnDistance);
-            float randomZ = transform.position.z + Random.Range(-randomSpawnDistance, randomSpawnDistance);
+            float randomX = transform.position.x + UnityEngine.Random.Range(-randomSpawnDistance, randomSpawnDistance);
+            float randomZ = transform.position.z + UnityEngine.Random.Range(-randomSpawnDistance, randomSpawnDistance);
 
             Vector3 randomSpawnPos = new Vector3(randomX,transform.position.y,randomZ);
             EntityDataSO randomCandidate = wave.GetRandomCandidate();
@@ -60,6 +68,7 @@ public class WaveSpawner : MonoBehaviour
         else
         {
             Debug.Log("LEVEL COMPLETED");
+            OnWavesCompleted?.Invoke();
         }
     }
 

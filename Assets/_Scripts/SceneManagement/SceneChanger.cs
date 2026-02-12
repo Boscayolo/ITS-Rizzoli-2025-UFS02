@@ -14,6 +14,10 @@ public class SceneChanger : MonoBehaviour
     public event Action<string> OnOperationStarted;
     public event Action<string> OnOperationCompleted;
 
+    public event Action OnLoadingStarted;
+    public event Action OnLoadingCompleted;
+    public event Action<float> OnProgress;
+
     [Header("Options")]
     [SerializeField] private bool dontDestroyOnLoad = true;
 
@@ -132,6 +136,7 @@ public class SceneChanger : MonoBehaviour
         string label = sceneName ?? $"Index {buildIndex.Value}";
 
         OnOperationStarted?.Invoke($"LoadSync {mode}: {label}");
+        OnLoadingStarted?.Invoke();
 
         if (sceneName != null)
             SceneManager.LoadScene(sceneName, mode);
@@ -139,6 +144,7 @@ public class SceneChanger : MonoBehaviour
             SceneManager.LoadScene(buildIndex.Value, mode);
 
         OnOperationCompleted?.Invoke($"LoadSync {mode}: {label}");
+        OnLoadingCompleted?.Invoke();
     }
 
     private Coroutine LoadAsync(int? buildIndex, string sceneName, LoadSceneMode mode,
@@ -162,6 +168,7 @@ public class SceneChanger : MonoBehaviour
         _opsInFlight++;
         string label = sceneName ?? $"Index {buildIndex.Value}";
         OnOperationStarted?.Invoke($"LoadAsync {mode}: {label}");
+        OnLoadingStarted?.Invoke();
 
         AsyncOperation op = (sceneName != null)
             ? SceneManager.LoadSceneAsync(sceneName, mode)
@@ -178,10 +185,12 @@ public class SceneChanger : MonoBehaviour
         while (!op.isDone)
         {
             onProgress?.Invoke(op.progress);
+            OnProgress?.Invoke(op.progress);
             yield return null;
         }
 
         OnOperationCompleted?.Invoke($"LoadAsync {mode}: {label}");
+        OnLoadingCompleted?.Invoke();
         onComplete?.Invoke();
 
         _opsInFlight--;
@@ -210,6 +219,7 @@ public class SceneChanger : MonoBehaviour
 
         _opsInFlight++;
         OnOperationStarted?.Invoke($"UnloadAsync: {sceneName}");
+        OnLoadingStarted?.Invoke();
 
         AsyncOperation op = SceneManager.UnloadSceneAsync(sceneName);
         if (op == null)
@@ -226,6 +236,7 @@ public class SceneChanger : MonoBehaviour
         }
 
         OnOperationCompleted?.Invoke($"UnloadAsync: {sceneName}");
+        OnLoadingCompleted?.Invoke();
         onComplete?.Invoke();
 
         _opsInFlight--;

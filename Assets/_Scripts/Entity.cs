@@ -9,7 +9,7 @@ public class Entity : MonoBehaviour
     [SerializeField] Shooter m_Shooter;
     [SerializeField] MeshRenderer m_Renderer;
 
-    private void Awake()
+    private void Start()
     {
         if (m_Entity == null)
         {
@@ -41,7 +41,14 @@ public class Entity : MonoBehaviour
 
         // Inizializza Health
         if (m_Health != null)
+        {
             m_Health.SetHealth(m_Entity.maxEntityHealth, m_Entity.startingEntityHealth);
+
+            if(m_Health.Team == Team.Player)
+            {
+                GameManager.Instance?.RegisterPlayer(this);
+            }
+        }
 
         // Equipaggia arma
         if (m_Shooter != null)
